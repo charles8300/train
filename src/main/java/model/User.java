@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 import java.io.Serializable;
 
-import static javax.persistence.GenerationType.SEQUENCE;
-
 @Entity
 @Table(name = "users")
 @NamedQueries({
@@ -24,9 +22,8 @@ public class User implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
-    @GeneratedValue(strategy = SEQUENCE, generator = "usersSeq")
-    @SequenceGenerator(name = "usersSeq", sequenceName = "USERS_SEQ", allocationSize = 1)
     @Column(name = "ID")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "FIRST_NAME")
     private String firstName;
