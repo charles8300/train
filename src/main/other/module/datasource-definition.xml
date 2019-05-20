@@ -1,0 +1,24 @@
+<datasource jta="true" jndi-name="java:/TrainRideDs" pool-name="TrainRideDs" enabled="true" use-ccm="false">
+    <connection-url>jdbc:mysql://80.211.241.86:3306/trainride</connection-url>
+    <driver-class>com.mysql.cj.jdbc.Driver</driver-class>
+    <connection-property name="serverTimezone">
+        UTC
+    </connection-property>
+    <driver>mysql</driver>
+    <pool>
+        <min-pool-size>1</min-pool-size>
+        <initial-pool-size>4</initial-pool-size>
+        <max-pool-size>5</max-pool-size>
+    </pool>
+    <security>
+        <user-name>qwerty</user-name>
+        <password>qwerty</password>
+    </security>
+    <validation>
+        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleValidConnectionChecker"/>
+        <background-validation>true</background-validation>
+        <use-fast-fail>true</use-fast-fail>
+        <stale-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleStaleConnectionChecker"/>
+        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleExceptionSorter"/>
+    </validation>
+</datasource>
