@@ -1,5 +1,0 @@
-ApplicationConfig.class
-model\User$UserBuilder.class
-repository\UserRepository.class
-services\UserService.class
-model\User.class
