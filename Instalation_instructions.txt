@@ -1,0 +1,82 @@
+$WILDFLY_HOME - katalog w ktorym mamy rozpakowany serwer
+Pliki pomocne przy konfiguracji wildfly dla polaczenia bazodanowego zostaly wrzucone do repozytorium i znajduja sie w katalogu 'src/main/other/module'.
+
+1. Konfiguracja wildfly
+Przechodzimy do katalogu $WILDFLY_HOME/modules/system/layers/base.
+Jeżeli nie mamy katalogu com/mysql/main to tworzymy taka wlasnie sciezke.
+W utworzonym katalogu umieszczamy mysql-connector-java-8.0.16.jar oraz module.xml zalaczone do projektu (katalog other).
+W przypadku startowania pojedynczej instancji wildfly przechodzimy do $WILDFLY_HOME/standalone/configuration.
+Wykonujemy sobie kopie zapasowa pliku 'standalone.xml'.
+Otwieramy 'standalone.xml' i wyszukujemy sobie sekcję 'drivers'. Umieszczamy w niej to co jest dolaczone do projektu w pliku other/sekcja-drivers.xml. 
+Sekcja powinna wygladac mniej wiecej tak (kluczowe jest dodanie sterownika dla mysql - wystarczy skopiowac zawartosc sekcja-drivers.xml):
+<drivers>
+      <driver name="h2" module="com.h2database.h2">
+           <xa-datasource-class>org.h2.jdbcx.JdbcDataSource</xa-datasource-class>
+      </driver>
+
+      <driver name="mysql" module="com.mysql">
+            <xa-datasource-class>com.mysql.cj.jdbc.MysqlXADataSource</xa-datasource-class>
+      </driver>
+</drivers>
+
+UWAGA! Nalezy zwrocic uwage na to aby wklejac konfiguracje w odpowiednie miejsce. Jezeli pomylimy sekcje lub nie zakonczymy jakiegos elementu 
+xml to serwer moze nie uruchomic sie prawidlowo.
+
+Teraz przechodzimy do sekcji 'datasources' umieszczonej w tym samym pliku (standalone.xml). Dodajemy konfiguracje datasource. Przyklad definicji datasource`a 
+zostal zawarty w pliku other/module/datasource-definition.xml. Nalezy pamietac o prawidlowym skonfigurowaniu samego polaczenia - zwlaszcza adresu serwera, uzytkownika oraz hasla.
+Ponizej opis wlasciwosci (sama zawartosc skopiowac i dostosowac z pliku 'datasource-definition.xml':
+
+<datasource jta="true" jndi-name="java:/TrainRideDs" pool-name="TrainRideDs" enabled="true" use-ccm="false">
+    <connection-url>jdbc:mysql://80.211.241.86:3306/trainride</connection-url> <!-- podac wlasciwy adres IP/hosta oraz nazwe bazy - tutaj trainride -->
+    <driver-class>com.mysql.cj.jdbc.Driver</driver-class> <!-- nie zmieniac -->
+    <connection-property name="serverTimezone"> <!-- ustawienie domyslnej strefy czasowej - mozna zmieniac na jaka sie chce -->
+        UTC
+    </connection-property>
+    <driver>mysql</driver> <!-- nazwa drivera - taka jaka przyjelismy dodajac sterownik w sekcji drivers -->
+    <pool> <!-- ponizej przyjeto losowe wartosci -->
+        <min-pool-size>1</min-pool-size> <!-- minimalna wielkosc puli polaczen - mozna zmieniac wedlug potrzeb -->
+        <initial-pool-size>4</initial-pool-size> <!-- startowa wielkosc puli polaczen - mozna zmieniac wedlug potrzeb -->
+        <max-pool-size>5</max-pool-size> <!-- maksymalna wielkosc puli polaczen -->
+    </pool>
+    <security>
+        <user-name>qwerty</user-name> <!-- nazwa uzytkownika dla dostepu bazodanowego -->
+        <password>qwerty</password> <!-- haslo dla dostepu bazodanowego -->
+    </security>
+    <validation> <!-- inne walidacyjne -->
+        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleValidConnectionChecker"/>
+        <background-validation>true</background-validation>
+        <use-fast-fail>true</use-fast-fail>
+        <stale-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleStaleConnectionChecker"/>
+        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.oracle.OracleExceptionSorter"/>
+    </validation>
+</datasource>
+
+2. Uruchomienie wildfly i sprawdzenie datasource`a
+Uruchamiamy GITBASH`a lub inny wiersz polecen.
+Przechodzimy do $WILDFLY_HOME/bin
+Uruchamiamy serwer w trybie debugowania (flaga --debug) wykonujac polecenie:
+./standalone.sh --debug
+Jezeli nie chcemy debugowac to pomijamy flage --debug.
+Przechodzimy w przegladarce do swojej konsoli administracyjnej serwera. Domyslnie jest ona dostepna pod adresem localhost:9990.
+Kolejne kroki roznia sie nieco w zaleznosci od wersji wildfly dlatego opisze je ogolnie.
+Wchodzimy do zakladki 'Configuration' w gornym menu konsoli administracyjnej i wyszukujemy sobie 'Datasources'.
+Na liscie powinien pojawic sie nowy datasource o nazwie 'TrainRideDs' (jezeli skopiowalismy wczesniej konfiguracje z projektu).
+Zaznaczamy go i z listy rozwijalnej (po kliknieciu na 'ptaszek') wykonujemy 'Test connection'.
+Jezeli wszystko wprowadzilismy prawidlowo mamy skonfigurowane polaczenie z baza na serwerze aplikacyjnym.
+
+3. Konfiguracja polaczenia w aplikacji.
+Teraz majac plik persistence.xml wyszukujemy tam element '<jta-data-source>'. Miedzy tagami nalezy wprowadzic nazwe naszego 
+datasource`a, ktory zostal wczesniej przez nas utworzony. W przykladzie bedzie to 'java:/TrainRideDs'.
+
+4. Budowanie aplikacji (tutaj jest bez automatycznego deploy`a, ale mozna sobie go dodac przy konfiguracji pluginu mavenowego).
+W katalogu projektu wykonujemy w konsoli: mvn clean install
+W konsoli administracyjnej wykonujemy deployment aplikacji
+Poniewaz przykladowa aplikacja jest tak skonfigurowana, ze na request 'GET' na sciezce 'user' zapisze 2-och uzytkownikow i zwroci ich dane, 
+to mozemy otworzyc dowolna przegladarke i zwyczajnie wpisac adres 'localhost:8080/newTrainRide-1.0-SNAPSHOT/user'. 
+'newTrainRide-1.0-SNAPSHOT' to kontekst aplikacji - mozna nim sterowac w wildfly lub w pom.xml. Tutaj dla uproszczenia jest pelna nazwa.
+W odpowiedzi na podany request w bazie utworzonych zostanie dwoch uzytkownikow (za kazdym razem gdy wywolamy usluge). Dodatkowo ich dane 
+zostana zwrocone jako odpowiedz na zapytanie.
+
+UWAGA! W przykladzie w pliku 'persistence.xml' mamy wpis:
+<property name="hibernate.hbm2ddl.auto" value="create"/>
+Aby aplikacja nie tworzyla nam schematu przy starcie nalezy albo go usunac albo zmienic wartosc.
